@@ -1,0 +1,9 @@
+field	type	validation
+Account	character	.*
+Campaign	character	.*
+Ad group	character	.*
+Keyword	character	.*
+Impressions	integer	[0-9]*
+Clicks	integer	[0-9]*
+Conversions	integer	[0-9]*
+Date	date	[0-9]+[^0-9a-zA-Z][0-9]+[^0-9a-zA-Z][0-9]+
