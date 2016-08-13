@@ -27,6 +27,7 @@ def detect_delimiter(sample_line):
         delimiter = ','
     if delimiter is None:
         raise SyntaxError('Delimiter wasn\'t detected as one of these values: \\t, ; or ,')
+    return delimiter
 
 # ------------------------------------------/ Class definitions  /------------------------------------------------
 
@@ -56,9 +57,9 @@ class DefFile(File):
             line = line.split(self.delimiter)
             if len(line) != 3:
                 raise ValueError('%s delimiter file has incorrect number of columns' % self.name)
-            if line[1] not in ['character', 'integer', 'numeric', 'bool', 'date']:
+            if line[1] not in ['character', 'integer', 'numeric', 'bool', 'date', 'percentage']:
                 raise ValueError('Invalid type for column %s in %s file' % (line[0], self.name))
-            self.columns[line[0]] = line[2]
+            self.columns[line[0]] = line[2].rstrip('\n')
 
 
 class InputFile(File):
@@ -66,6 +67,15 @@ class InputFile(File):
         File.__init__(self, path, True)
         self.delimiter = detect_delimiter(self.first_line)
 
+
+class OutputFile(File):
+    def __init__(self, name):
+        File.__init__(self, os.path.join(path_Output, name), False)
+
+
+class FilterOutFile(File):
+    def __init__(self, name):
+        File.__init__(self, os.path.join(path_Filtered, name), False)
 
 # -------------------------------------------------/ Definitions /-----------------------------------------
 definitions = {}
@@ -79,7 +89,7 @@ element = None
 if len(definitions) == 0:
     raise FileNotFoundError('Definition files missing')
 
-# -------------------------------------------------/ Input /-----------------------------------------
+# -------------------------------------------------/ Input /------------------------------------------------
 if len(os.listdir(path_Input)) == 0 or len(os.listdir(path_Input)) != len(definitions):
     raise FileNotFoundError('Input files missing or more than definitions')
 
@@ -91,24 +101,29 @@ for file in os.listdir(path_Input):
     Input[element.name] = element
 element = None
 
+# -------------------------------------------/ Check and write/----------------------------------------------
+
+for file in Input:
+    file = Input[file]
+
+    regex = {}
+    for i, v in enumerate(file.first_line.rstrip('\n').split(file.delimiter)):
+        regex[i] = v
+    # noinspection PyRedeclaration
+
+    output = OutputFile(file.name)
+    filtered = FilterOutFile(file.name)
+
+    file.handler.readline()
+    for line in file.handler:
+        line = line.rstrip('\n').split(file.delimiter)
+        for index, field in enumerate(line):
+            if re.match(definitions[file.name].columns[regex[index]], field) is None:
+                filtered.handler.write(file.delimiter.join(line) + '\n')
+                break
+            if index == len(line):
+                output.handler.write('\t'.join(line) + '\n')
 
 
 
-
-
-
-
-
-def get_files():
-    if os.path.isfile('C:/Users/Carlos/Programming/Python/Csv_Manager/Csv_test.csv'):
-        input_handler = open('C:/Users/Carlos/Programming/Python/Csv_Manager/Csv_test.csv', 'r', encoding="utf-8")
-        output_handler = open(input_handler.name[:-4] + '_transformed.csv', 'w')
-        # manage_file(input_handler, output_handler)
-    elif os.path.isdir('C:/Users/Carlos/Programming/Python/Csv_Manager/Csv_test.csv'):
-        for csv in os.listdir('C:/Users/Carlos/Programming/Python/Csv_Manager/Csv_test.csv'):
-            if csv[-4:] != '.csv' or csv[-16:] == '_transformed.csv':
-                continue
-            input_handler = open(csv, 'r', encoding="utf-8")
-            output_handler = open(input_handler.name[:-4] + '_transformed.csv', 'w')
-            # manage_file(input_handler, output_handler)
 
