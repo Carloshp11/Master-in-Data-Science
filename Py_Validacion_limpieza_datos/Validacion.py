@@ -211,5 +211,7 @@ for file in Input:
                     output.handler.write('\t'.join(line) + '\n')
     output.set_pos(same, fourdigits, lastdate, more_than_twelve)
 
+# TODO lista de errores y sus actiaciones para Evernote
+# TODO emular con un fichero x ejemplo cuál es el mensaje que se daría al usuario
 
 
