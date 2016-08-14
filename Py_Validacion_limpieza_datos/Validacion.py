@@ -16,7 +16,7 @@ path_Filtered = os.path.join(os.getcwd(), Project_name, 'Filtered_out')
 # -----------------------------------------/ function definitions  /----------------------------------------------
 
 
-def detect_delimiter(sample_line):
+def detect_delimiter(sample_line, name):
     delimiter = None
     greater = 1
     if len(sample_line.split('\t')) > greater:
@@ -26,7 +26,7 @@ def detect_delimiter(sample_line):
     if len(sample_line.split(',')) > greater:
         delimiter = ','
     if delimiter is None:
-        raise SyntaxError('Delimiter wasn\'t detected as one of these values: \\t, ; or ,')
+        raise SyntaxError('File %s: Delimiter wasn\'t detected as one of these values: \\t, ; or ,' % name)
     return delimiter
 
 # ------------------------------------------/ Class definitions  /------------------------------------------------
@@ -59,7 +59,7 @@ class DefFile(File):
                 continue
             line = line.split(self.delimiter)
             if len(line) != 3:
-                raise ValueError('%s delimiter file has incorrect number of columns' % self.name)
+                raise ValueError('%s definition file has incorrect number of columns' % self.name)
             if line[1] not in ['character', 'integer', 'numeric', 'bool', 'date', 'percentage']:
                 raise ValueError('Invalid type for column %s in %s file' % (line[0], self.name))
             self.columns[line[0]] = ['__' + line[2].rstrip('\n') + '__', line[1]]
@@ -68,18 +68,23 @@ class DefFile(File):
             if self.columns[field][1] == 'date':
                 number_of_dates += 1
         if number_of_dates > 1:
-            raise ValueError('There are %i dates defined. There can only be one.' % number_of_dates)
+            raise ValueError('There are %i dates defined. Only one if supported per file at the moment.' % number_of_dates)
 
 
 class InputFile(File):
     def __init__(self, path):
         File.__init__(self, path, True)
-        self.delimiter = detect_delimiter(self.first_line)
+        self.delimiter = detect_delimiter(self.first_line, self.name)
 
 
 class FilterOutFile(File):
     def __init__(self, name):
         File.__init__(self, os.path.join(path_Filtered, name), False)
+        self.troubles = set()
+        self.n_errors = 0
+
+    def writeline(self, text):
+        self.handler.write(file.delimiter.join(line.args + [' && '.join(line.trouble)]) + '\n')
 
 
 class OutputFilePrev(File):
@@ -89,6 +94,7 @@ class OutputFilePrev(File):
         self.yearpos = None
         self.monthpos = None
         self.daypos = None
+# TODO reescribir los ficheros con la fecha ordenada
 
     # noinspection PyShadowingNames
     def set_pos(self, same, fourdigits, lastdate, more_than_twelve):
@@ -98,10 +104,10 @@ class OutputFilePrev(File):
                 checks += 1
         if checks > 1:
             raise ValueError('Some row(s) in date column of file %s contains more than one number with more \
-                              than two digits' % self.name)
+                              than two digits. Either column is not date or the format is inconsistent.' % self.name)
         if checks == 0:
             raise ValueError('None of the positions of date column in file %s contains four digits. Year must be \
-                              written in four digits format.' % self.name)
+                              written in four digits format. Please fix this.' % self.name)
         for position, check in enumerate(fourdigits):
             if check is True:
                 self.yearpos = position
@@ -211,14 +217,12 @@ for file in Input:
 
     for line in file.handler:
         line = Line(line, file.delimiter, file.quote)
-
-        if line.args[0] == 'Total':
-            print('foo')
-
         for index, field in enumerate(line.args):
             match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field.strip(line.q) + '__')
             if match is None:
                 line.trouble.append(regex[index])
+                filtered.troubles.add(regex[index])
+                filtered.n_errors += 1
             if definitions[file.name].columns[regex[index]][1] == 'date' and len(line.trouble) == 0:
                 for i in [0, 1, 2]:
                     if len(match.groups()[i]) >= 3:
@@ -233,12 +237,16 @@ for file in Input:
 
             if index == len(line.args) - 1:
                 if len(line.trouble) > 0:
-                    filtered.handler.write(file.delimiter.join(line.args + [' && '.join(line.trouble)]) + '\n')
+                    filtered.writeline(file.delimiter.join(line.args + [' && '.join(line.trouble)]) + '\n')
                 else:
                     output.handler.write('\t'.join(line.args) + '\n')
     output.set_pos(same, fourdigits, lastdate, more_than_twelve)
 
-# TODO lista de errores y sus actiaciones para Evernote
-# TODO emular con un fichero x ejemplo cuál es el mensaje que se daría al usuario
-
+    # noinspection PyUnboundLocalVariable
+    if filtered.n_errors > 0:
+        print('File %s encountered %i rows with some column(s) not passing validation and therefore filtered out. You should \
+           check the \"Filtered out\" files to decide if this is a problem' % file.name, filtered.n_errors )
+        # TODO print 3 first erros of each type so user can have a quick look at the problem
+print('Process completed. Check errors in case they exist and confirm to launch the whole study process or \
+       fix your files and upload them again')
 
