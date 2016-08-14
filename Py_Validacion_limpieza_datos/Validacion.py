@@ -41,6 +41,7 @@ class File(object):
         else:
             self.handler = open(path, 'w', encoding="utf-8")
         self.name = os.path.basename(path)
+        self.quote = '"'
 
 
 class DefFile(File):
@@ -139,6 +140,31 @@ class OutputFilePrev(File):
                     self.daypos = posibilities[0]
 
 
+class Line(object):
+    def __init__(self, text, delimiter, quote='"'):
+        self.args = text.rstrip('\n').split(delimiter)
+        self.q = quote
+        self.d = delimiter
+        self.trouble = []
+        self.args = self.detect_complex_args()
+
+    def detect_complex_args(self):
+        processed_args = []
+        complex_arg = ''
+        for arg in self.args:
+            if arg[-1] == self.q:
+                complex_arg = (complex_arg + self.d + arg).lstrip(self.d)
+                processed_args.append(complex_arg)
+                complex_arg = ''
+            elif complex_arg != '' or arg[0] == self.q:
+                complex_arg = (complex_arg + self.d + arg).lstrip(self.d)
+            else:
+                processed_args.append(arg)
+        if complex_arg != '':
+            self.trouble = ['wrong quoting']
+        return processed_args
+
+
 # -------------------------------------------------/ Definitions /-----------------------------------------
 definitions = {}
 for file in os.listdir(path_Definitions):
@@ -164,7 +190,6 @@ for file in os.listdir(path_Input):
 element = None
 
 # -------------------------------------------/ Check and write/----------------------------------------------
-
 for file in Input:
     file = Input[file]
 
@@ -177,7 +202,6 @@ for file in Input:
     filtered = FilterOutFile(file.name)
     filtered.handler.write(file.delimiter.join(file.first_line.rstrip('\n').split(file.delimiter) +
                                                ['Troublesome column(s)']) + '\n')
-    # TODO pensar cómo manejar los quotes
     file.handler.readline()
 
     same = [0, 0, 0]
@@ -186,13 +210,16 @@ for file in Input:
     more_than_twelve = [False, False, False]
 
     for line in file.handler:
-        trouble = []
-        line = line.rstrip('\n').split(file.delimiter)
-        for index, field in enumerate(line):
-            match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field + '__')
+        line = Line(line, file.delimiter, file.quote)
+
+        if line.args[0] == 'Total':
+            print('foo')
+
+        for index, field in enumerate(line.args):
+            match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field.strip(line.q) + '__')
             if match is None:
-                trouble.append(regex[index])
-            if definitions[file.name].columns[regex[index]][1] == 'date' and len(trouble) == 0:
+                line.trouble.append(regex[index])
+            if definitions[file.name].columns[regex[index]][1] == 'date' and len(line.trouble) == 0:
                 for i in [0, 1, 2]:
                     if len(match.groups()[i]) >= 3:
                         fourdigits[i] = True
@@ -204,11 +231,11 @@ for file in Input:
                     if int(match.groups()[i]) > 12:
                         more_than_twelve[i] = True
 
-            if index == len(line) - 1:
-                if len(trouble) > 0:
-                    filtered.handler.write(file.delimiter.join(line + [' && '.join(trouble)]) + '\n')
+            if index == len(line.args) - 1:
+                if len(line.trouble) > 0:
+                    filtered.handler.write(file.delimiter.join(line.args + [' && '.join(line.trouble)]) + '\n')
                 else:
-                    output.handler.write('\t'.join(line) + '\n')
+                    output.handler.write('\t'.join(line.args) + '\n')
     output.set_pos(same, fourdigits, lastdate, more_than_twelve)
 
 # TODO lista de errores y sus actiaciones para Evernote
