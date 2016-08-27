@@ -1,3 +1,5 @@
+#!/usr/bin/python3.5
+
 import os
 import re
 
@@ -28,6 +30,18 @@ def detect_delimiter(sample_line, name):
     if delimiter is None:
         raise SyntaxError('File %s: Delimiter wasn\'t detected as one of these values: \\t, ; or ,' % name)
     return delimiter
+
+
+def delete_files(folderpath):
+    for the_file in os.listdir(folderpath):
+        file_path = os.path.join(folderpath, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+                # elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
+        print('Files in %s deleted.' % folderpath)
 
 # ------------------------------------------/ Class definitions  /------------------------------------------------
 
@@ -196,6 +210,8 @@ for file in os.listdir(path_Input):
 element = None
 
 # -------------------------------------------/ Check and write/----------------------------------------------
+delete_files(path_Output)
+
 for file in Input:
     file = Input[file]
 
@@ -244,8 +260,8 @@ for file in Input:
 
     # noinspection PyUnboundLocalVariable
     if filtered.n_errors > 0:
-        print('File %s encountered %i rows with some column(s) not passing validation and therefore filtered out. You should \
-           check the \"Filtered out\" files to decide if this is a problem' % file.name, filtered.n_errors )
+        print('File %s encountered %i rows with some column(s) not passing validation and therefore filtered out.'
+              'You should check the \"Filtered out\" files to decide if this is a problem' % (file.name, filtered.n_errors) )
         # TODO print 3 first erros of each type so user can have a quick look at the problem
 print('Process completed. Check errors in case they exist and confirm to launch the whole study process or \
        fix your files and upload them again')
