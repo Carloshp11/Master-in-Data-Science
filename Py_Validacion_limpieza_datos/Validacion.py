@@ -234,6 +234,9 @@ for file in Input:
     for line in file.handler:
         line = Line(line, file.delimiter, file.quote)
         for index, field in enumerate(line.args):
+            # exceptions for specific data types
+            if definitions[file.name].columns[regex[index]][1] == 'numeric':
+                field = field.replace(',', '.')
             match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field.strip(line.q) + '__')
             if match is None:
                 line.trouble.append(regex[index])
