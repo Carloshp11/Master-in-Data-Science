@@ -263,6 +263,6 @@ for file in Input:
         print('File %s encountered %i rows with some column(s) not passing validation and therefore filtered out.'
               'You should check the \"Filtered out\" files to decide if this is a problem' % (file.name, filtered.n_errors) )
         # TODO print 3 first erros of each type so user can have a quick look at the problem
-print('Process completed. Check errors in case they exist and confirm to launch the whole study process or \
-       fix your files and upload them again')
+print('Process completed. Check errors in case they exist and confirm to launch the whole study process or'
+      'fix your files and upload them again')
 
