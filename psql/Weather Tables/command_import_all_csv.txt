@@ -1,0 +1,3 @@
+cat /home/dsc/Repositories/Master-in-Data-Science/psql/Weather\ Tables/csv_files/*.csv | psql -d pfm -c "COPY weather.weather from stdin WITH CSV DELIMITER ';' HEADER "
+
+cat /home/dsc/Repositories/Master-in-Data-Science/psql/Weather\ Tables/0002I.csv | psql -d pfm -c "COPY weather.weather from stdin WITH CSV DELIMITER ';' HEADER "

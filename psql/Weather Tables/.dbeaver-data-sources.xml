@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data-sources>
+	<data-source id="postgres-jdbc-156b3d28ce4-27f0d1ecbf8c9837" provider="postgresql" driver="postgres-jdbc" name="PFM" create-date="1471895875833" save-password="true" show-system-objects="true" read-only="false">
+		<connection host="localhost" port="5432" server="" database="pfm" url="jdbc:postgresql://localhost:5432/pfm" user="dsc" type="dev">
+			<property name="@dbeaver-show-non-default-db@" value="false"/>
+			<property name="connectTimeout" value="20"/>
+			<property name="loginTimeout" value="20"/>
+			<network-handler type="CONFIG" id="postgre_ssl" enabled="false" user="" save-password="false">
+				<property name="sslFactory" value=""/>
+				<property name="clientCert" value=""/>
+				<property name="clientKey" value=""/>
+				<property name="sslMode" value=""/>
+			</network-handler>
+			<network-handler type="PROXY" id="socks_proxy" enabled="false" user="" save-password="false">
+				<property name="socks-host" value=""/>
+				<property name="socks-port" value="1080"/>
+			</network-handler>
+			<network-handler type="TUNNEL" id="ssh_tunnel" enabled="false" user="" save-password="false">
+				<property name="port" value="22"/>
+				<property name="keyPath" value=""/>
+				<property name="host" value=""/>
+				<property name="authType" value="PASSWORD"/>
+			</network-handler>
+			<bootstrap/>
+		</connection>
+	</data-source>
+</data-sources>
