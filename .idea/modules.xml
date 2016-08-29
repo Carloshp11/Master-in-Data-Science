@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../Csv_Manager/.idea/Csv_Manager.iml" filepath="$PROJECT_DIR$/../Csv_Manager/.idea/Csv_Manager.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Master-in-Data-Science.iml" filepath="$PROJECT_DIR$/.idea/Master-in-Data-Science.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../keyword-eraser/.idea/keyword-eraser.iml" filepath="$PROJECT_DIR$/../keyword-eraser/.idea/keyword-eraser.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../keyword-splitter/.idea/keyword-splitter.iml" filepath="$PROJECT_DIR$/../keyword-splitter/.idea/keyword-splitter.iml" />
+    </modules>
+  </component>
+</project>

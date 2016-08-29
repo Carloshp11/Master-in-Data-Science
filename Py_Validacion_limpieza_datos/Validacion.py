@@ -62,6 +62,7 @@ class File(object):
     def refresh_handler(self):
         self.handler = open(self.handler.name, 'r', encoding="utf-8")
 
+
 class DefFile(File):
     def __init__(self, path):
         File.__init__(self, path, True)
@@ -72,7 +73,7 @@ class DefFile(File):
 
         number_of_dates = 0
         first_line = True
-        # noinspection PyShadowingNam
+
         for line in self.handler:
             if first_line:
                 first_line = False
@@ -151,7 +152,7 @@ class OutputFilePrev(File):
                     break
         else:               # In this case only the year is above 12. We must suppose what the month is by the ammount
                             # of times it is repeated consecutively, which is probably greater than for the day.
-            posibilities = [0, 1, 2]
+            posibilities = [0, 2, 3]
             posibilities.remove(self.yearpos)
             if same[posibilities[0]] == same[posibilities[1]]:  # Tie break: I guess what I feel more reasonable
                 if self.yearpos == 2:
@@ -167,6 +168,12 @@ class OutputFilePrev(File):
                 else:
                     self.monthpos = posibilities[1]
                     self.daypos = posibilities[0]
+        if self.yearpos > 0:
+            self.yearpos += 1
+        if self.monthpos > 0:
+            self.monthpos += 1
+        if self.daypos > 0:
+            self.daypos += 1
 
 
 class Line(object):
@@ -279,7 +286,7 @@ for file in Input:
                 year = match.groups()[output.yearpos]
                 month = match.groups()[output.monthpos]
                 day = match.groups()[output.daypos]
-                field = match.groups()[2].join((day, year, month))
+                line.args[index] = '-'.join((year, month, day))
             # ---------
             if match is None:
                 if len(line.trouble) == 0:
