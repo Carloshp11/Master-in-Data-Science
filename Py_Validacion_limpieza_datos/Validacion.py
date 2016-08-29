@@ -1,5 +1,6 @@
 #!/usr/bin/python3.5
 
+import timing
 import os
 import re
 
@@ -13,6 +14,7 @@ date = '20160811'
 path_Definitions = os.path.join(os.getcwd(), Project_name, 'Definitions')
 path_Input = os.path.join(os.getcwd(), Project_name, 'Input')
 path_Output = os.path.join(os.getcwd(), Project_name, 'Output')
+path_Intermediate = os.path.join(os.getcwd(), Project_name, 'Intermediate')
 path_Filtered = os.path.join(os.getcwd(), Project_name, 'Filtered_out')
 
 # -----------------------------------------/ function definitions  /----------------------------------------------
@@ -57,12 +59,16 @@ class File(object):
         self.name = os.path.basename(path)
         self.quote = '"'
 
+    def refresh_handler(self):
+        self.handler = open(self.handler.name, 'r', encoding="utf-8")
 
 class DefFile(File):
     def __init__(self, path):
         File.__init__(self, path, True)
         self.columns = {}
         self.delimiter = '\t'
+        self.dateRegex = None
+        self.dateName = None
 
         number_of_dates = 0
         first_line = True
@@ -78,17 +84,21 @@ class DefFile(File):
                 raise ValueError('Invalid type for column %s in %s file' % (line[0], self.name))
             self.columns[line[0]] = ['__' + line[2].rstrip('\n') + '__', line[1]]
         # noinspection PyShadowingNames
-        for field in self.columns:
-            if self.columns[field][1] == 'date':
+        for index, column in enumerate(self.columns):
+            if self.columns[column][1] == 'date':
+                self.dateRegex = self.columns[column][0]
+                self.dateName = column
                 number_of_dates += 1
         if number_of_dates > 1:
-            raise ValueError('There are %i dates defined. Only one if supported per file at the moment.' % number_of_dates)
+            raise ValueError(
+                'There are %i dates defined. Only one if supported per file at the moment.' % number_of_dates)
 
 
 class InputFile(File):
     def __init__(self, path):
         File.__init__(self, path, True)
         self.delimiter = detect_delimiter(self.first_line, self.name)
+        self.dateindex = None
 
 
 class FilterOutFile(File):
@@ -104,11 +114,10 @@ class FilterOutFile(File):
 class OutputFilePrev(File):
     def __init__(self, name):
         File.__init__(self, os.path.join(path_Output, name), False)
-        self.datepos = None
+        # self.datepos = None
         self.yearpos = None
         self.monthpos = None
         self.daypos = None
-# TODO reescribir los ficheros con la fecha ordenada
 
     # noinspection PyShadowingNames
     def set_pos(self, same, fourdigits, lastdate, more_than_twelve):
@@ -218,6 +227,8 @@ for file in Input:
     regex = {}
     for i, v in enumerate(file.first_line.rstrip('\n').split(file.delimiter)):
         regex[i] = v
+        if definitions[file.name].dateName == v:
+            file.dateindex = i
 
     output = OutputFilePrev(file.name)
     output.handler.write('\t'.join(file.first_line.split(file.delimiter)))
@@ -226,46 +237,66 @@ for file in Input:
                                                ['Troublesome column(s)']) + '\n')
     file.handler.readline()
 
-    same = [0, 0, 0]
-    fourdigits = [False, False, False]
-    lastdate = [0, 0, 0]
-    more_than_twelve = [False, False, False]
+    same = [0, 0, 0, 0]
+    fourdigits = [False, False, False, False]
+    lastdate = [0, 0, 0, 0]
+    more_than_twelve = [False, False, False, False]
 
-    for line in file.handler:
-        line = Line(line, file.delimiter, file.quote)
-        for index, field in enumerate(line.args):
-            # exceptions for specific data types
-            if definitions[file.name].columns[regex[index]][1] == 'numeric':
-                field = field.replace(',', '.')
-            match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field.strip(line.q) + '__')
-            if match is None:
-                line.trouble.append(regex[index])
-                filtered.troubles.add(regex[index])
-                filtered.n_errors += 1
-            if definitions[file.name].columns[regex[index]][1] == 'date' and len(line.trouble) == 0:
-                for i in [0, 1, 2]:
+    # first reading to determine date format
+    if definitions[file.name].dateName is not None:
+        for line in file.handler:
+            line = Line(line, file.delimiter, file.quote)
+            match = re.match(definitions[file.name].dateRegex,
+                             '__' + line.args[file.dateindex].strip(line.q) + '__')
+            if match is not None:
+                for i in [0, 2, 3]:
                     if len(match.groups()[i]) >= 3:
                         fourdigits[i] = True
                         more_than_twelve[i] = True
+                        lastdate[i] = match.groups()[i]
                         continue
                     if match.groups()[i] == lastdate[i]:
                         same[i] += 1
                     lastdate[i] = match.groups()[i]
                     if int(match.groups()[i]) > 12:
                         more_than_twelve[i] = True
+        output.set_pos(same, fourdigits, lastdate, more_than_twelve)
+
+    # second reading to rewrite and validate output
+    file.refresh_handler()
+    file.handler.readline()
+    for line in file.handler:
+        line = Line(line, file.delimiter, file.quote)
+        for index, field in enumerate(line.args):
+            # ---------
+            # pre-processing exceptions for specific data types
+            if definitions[file.name].columns[regex[index]][1] == 'numeric':
+                field = field.replace(',', '.')
+            # Regex validation
+            match = re.match(definitions[file.name].columns[regex[index]][0], '__' + field.strip(line.q) + '__')
+            # post-processing exceptions
+            if definitions[file.name].columns[regex[index]][1] == 'date' and match is not None:
+                year = match.groups()[output.yearpos]
+                month = match.groups()[output.monthpos]
+                day = match.groups()[output.daypos]
+                field = match.groups()[2].join((day, year, month))
+            # ---------
+            if match is None:
+                if len(line.trouble) == 0:
+                    filtered.n_errors += 1
+                line.trouble.append(regex[index])
+                filtered.troubles.add(regex[index])
 
             if index == len(line.args) - 1:
                 if len(line.trouble) > 0:
                     filtered.writeline(file.delimiter.join(line.args + [' && '.join(line.trouble)]) + '\n')
                 else:
                     output.handler.write('\t'.join(line.args) + '\n')
-    output.set_pos(same, fourdigits, lastdate, more_than_twelve)
 
     # noinspection PyUnboundLocalVariable
     if filtered.n_errors > 0:
         print('File %s encountered %i rows with some column(s) not passing validation and therefore filtered out.'
               'You should check the \"Filtered out\" files to decide if this is a problem' % (file.name, filtered.n_errors) )
-        # TODO print 3 first erros of each type so user can have a quick look at the problem
 print('Process completed. Check errors in case they exist and confirm to launch the whole study process or'
       'fix your files and upload them again')
 

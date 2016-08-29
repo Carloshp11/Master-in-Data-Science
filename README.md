@@ -1,2 +1,4 @@
 # Master-in-Data-Science
-Here you'll find the projects I developed during the master
+This repository holds the Master in Data Science project code.
+
+By Carlos De Las Heras and Stefanie Anderson.

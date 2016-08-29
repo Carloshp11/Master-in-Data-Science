@@ -1,6 +1,6 @@
 field	type	validation
 Account	character	.+
-Day	date	([0-9]+)[^0-9a-zA-Z]([0-9]+)[^0-9a-zA-Z]([0-9]+)
+Day	date	([0-9]+)([^0-9a-zA-Z])([0-9]+)[^0-9a-zA-Z]([0-9]+)
 Campaign	character	.+
 Ad group	character	.+
 Ad group state	character	enabled
